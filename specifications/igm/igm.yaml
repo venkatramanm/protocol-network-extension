@@ -38,7 +38,7 @@ paths:
                 - context.ttl
                 - message.issue
                 - message.issue.id
-                - message.issue.complainant_info.contact.phone
+                - message.issue.complainant.contact.phone
                 - message.issue.order_details.id
                 - message.issue.order_details
                 - message.issue.issue_type
@@ -93,7 +93,7 @@ paths:
                 - context
                 - message.issue
                 - message.issue.id
-                - message.issue.complainant_info.contact.phone
+                - message.issue.complainant.contact.phone
                 - message.issue.order_details.id
                 - message.issue.order_details
                 - message.issue.issue_type
@@ -218,61 +218,103 @@ components:
       name: Authorization
       description: 'Signature of message body using Collector or Receiver subscriber''s signing public key. <br/><br/>Format:<br/><br/><code>Authorization : Signature keyId="{subscriber_id}|{unique_key_id}|{algorithm}",algorithm="ed25519",created="1606970629",expires="1607030629",headers="(created) (expires) digest",signature="Base64(signing string)"</code>'
   schemas:
-    Complainant:
+    Representative:
       description: |
-        - Describes an entity that raises a complaint with an interfacing app. 
+        - Describes an entity that raises/responds to a complaint with an interfacing app. 
         - The complainant may be an end user (buyer or seller) or a network participant (buyer app/ seller app/ logistic services  provider app)
       type: object
       properties:
-        person:
-          $ref: "https://raw.githubusercontent.com/beckn/protocol-specifications/draft/core/v0/api/core.yaml#/components/schemas/Person"
-        contact:
-          $ref: "https://raw.githubusercontent.com/ONDC-Official/ONDC-Protocol-Specs/master/protocol-specifications/core/v0/api/core.yaml#/components/schemas/Contact"
+        subscriber_id:
+          type: string
+        id :
+          description: id of the representative.  (typically user_id on the representing system , buyer_id or provider_id or seller_id or driver_id on the corrpesponding apps bap,bpp or logistics bpp)
+          type: string
+        role :
+          type: string
+          oneOf:
+            - $ref: "#/components/schemas/ComplainantRole"
+            - $ref: "#/components/schemas/RespondentRole"
       required:
         - contact.phone
-    ResolutionProvider:
-      description: Describes the details of the entity that provides the resolution for the issue
+      allOf:
+        - $ref: "https://raw.githubusercontent.com/beckn/protocol-specifications/draft/core/v0/api/core.yaml#/components/schemas/Agent"
+    Complainant:
       type: object
+      allOf:
+        - $ref: "#/components/schemas/Representative"
       properties:
-        respondent_info:
-          description: _
-           the respondant represents the details of the entity identfied by the resolution provider or the complainant himself (when he has to select the ODRs)
-          type: object
-          properties:
-            type:
-              description: | 
-                Indicates the type of the resolution provider NP type.
-                ### TYPES
-                1. Interfacing NP : indicating the NP where or through which the issue is raised
-                2. Transaction Counterparty NP : indicating the first level of transaction counterparty network provider with which the interfacing NP is interacting with to get an issue resolution.
-                3. Cascaded Counterparty NP : indicating the second or any further downstream levels of counterparty network provider with which the NP is interacting with to get an issue resolution.
-              type: string
-              enum:
-                - INTERFACING-NP
-                - TRANSACTION-COUNTERPARTY-NP
-                - CASCADED-COUNTERPARTY-NP
-            pos_id:
-              type: string
-            organization:
-              $ref: "#/components/schemas/Organization"
-            resolution_support:
-              $ref: "#/components/schemas/ResolutionSupport"
-      required:
-        - respondent_info
+        role :
+          $ref : "#/components/schemas/ComplainantRole"
 
-    IssueResolution:
-      description: Describes the issue resolution for the issue raised by a Complainant 
+    ComplainantRole :
+      description: |
+        Indicates the source from where the issue is raised.
+        ### TYPES
+        1. Consumer: indicating that the Consumer(Buyer) of a product or a service has raised the issue\
+        2. Seller: indicating that the Seller of a product or a service has raised the issue\
+        3. Intefacing NP: indicating that the Interfacing NP has identified and raised the issue\
+      type: string
+      enum:
+        - CONSUMER
+        - SELLER
+        - INTERFACING-NP
+        - INTERFACING-NP-GRO
+    RespondentRole :
+      type: string
+      enum:
+        - TRANSACTION-COUNTERPARTY-NP
+        - CASCADED-COUNTERPARTY-NP
+        - TRANSACTION-COUNTERPARTY-NP-GRO
+        - CASCADED-COUNTERPARTY-NP-GRO
+
+
+    #    Denormalized in issue.!
+#    ResolutionProvider:
+#      description: |
+#          Describes the details of the entity that provides the resolution for the issue
+#      type: object
+#      properties:
+#        respondent:
+#          description: The respondant represents the details of the entity identfied by the resolution provider or the complainant himself (when he has to select the ODRs)
+#          type: object
+#          properties:
+#            # Available from the role of the representative.
+#            #            type:
+#            #              description: |
+#            #                Indicates the type of the resolution provider NP type.
+#            #                ### TYPES
+#            #                1. Interfacing NP : indicating the NP where or through which the issue is raised
+#            #                2. Transaction Counterparty NP : indicating the first level of transaction counterparty network provider with which the interfacing NP is interacting with to get an issue resolution.
+#            #                3. Cascaded Counterparty NP : indicating the second or any further downstream levels of counterparty network provider with which the NP is interacting with to get an issue resolution.
+#            #              type: string
+#            #              enum:
+#            #                - INTERFACING-NP
+#            #                - TRANSACTION-COUNTERPARTY-NP
+#            #                - CASCADED-COUNTERPARTY-NP
+#            # merchant_order_id:
+#            #  description: merchant_order_id ( Not sure if needed , Every thing is cross referenced internally in systems by the network id . Is that not enough)
+#            #  type: string
+#            representative:
+#              $ref: "#/components/schemas/Representative"
+#            resolution_support:
+#              $ref: "#/components/schemas/ResolutionSupport"
+#      required:
+#        - respondent_info
+
+    Resolution:
+      description: Describes the resolution for the issue raised by a complainant
       type: object
       properties:
-        network_issue_id:
-          description: Network issue identifier is a unique number assigned to a complaint by the interfacing application
-          type: string
-          format: uuid
+        # Not needed as it is a child of issue.
+        #    network_issue_id:
+        #      description: Network issue identifier is a unique number assigned to a complaint by the interfacing application
+        #      type: string
+        #      format: uuid
         resolution:
           description: resolution
           type: string
         resolution_remarks:
-          description: remarks of the resolution of the issue by the respondent
+          description: resolution remarks provided by the respondent
           type: string
         gro_remarks:
           description: resolution remarks provided by the gro
@@ -297,19 +339,20 @@ components:
             - REPLACEMENT
             - NO-ACTION
       required:
-        - network_issue_id
         - resolution_remarks
         - resolution_action
-    Organization:
-      type: object
-      properties:
-        org:
-         $ref: "https://raw.githubusercontent.com/ONDC-Official/ONDC-Protocol-Specs/master/protocol-specifications/core/v0/api/core.yaml#/components/schemas/Organization"
-        contact: 
-         $ref: "https://raw.githubusercontent.com/ONDC-Official/ONDC-Protocol-Specs/master/protocol-specifications/core/v0/api/core.yaml#/components/schemas/Contact"
-        person:
-          $ref: "https://raw.githubusercontent.com/beckn/protocol-specifications/draft/core/v0/api/core.yaml#/components/schemas/Person"
-    ResolutionSupport:
+# Organization schema contains org!! This is very similar to https://raw.githubusercontent.com/beckn/protocol-specifications/draft/core/v0/api/core.yaml#/components/schemas/Agent
+# So modified to Agent everywhere that used /Organization before.
+#    Organization:
+#      type: object
+#      properties:
+#        org:
+#         $ref: "https://raw.githubusercontent.com/ONDC-Official/ONDC-Protocol-Specs/master/protocol-specifications/core/v0/api/core.yaml#/components/schemas/Organization"
+#        contact:
+#         $ref: "https://raw.githubusercontent.com/ONDC-Official/ONDC-Protocol-Specs/master/protocol-specifications/core/v0/api/core.yaml#/components/schemas/Contact"
+#        person:
+#          $ref: "https://raw.githubusercontent.com/beckn/protocol-specifications/draft/core/v0/api/core.yaml#/components/schemas/Person"
+    Respondent:
       description: |
         Any one of these resolution support deatils are mandatory to be speficed whenever an issue resolution is proposed.
         In case of Issue, Either a respondent ChatLink, email or faq deatils should be provided or any of the additional sources of support should be provided
@@ -317,76 +360,87 @@ components:
         In case of Dispute : the selected ODR details are mandatory to be provided 
         Porvides details of the resolution support for the respondent / complainant to interact with the respondent
       type: object
+      allOf:
+          - $ref: "#/components/schemas/Representative"
       properties:
-        respondentChatLink:
+        role:
+          $ref: "#/components/schemas/RespondentRole"
+        chat_link:
           description: chatbot link for the respondent for complainant to interact with the respondent
           type: string
-        respondentEmail:
-          description: email for the respondent for complainant to interact with the respondent
+          format: uri
+# Email and contacts are inside Representative
+#        respondent_email:
+#          description: email for the respondent for complainant to interact with the respondent
+#          type: string
+#        respondent_contact:
+#          $ref: "https://raw.githubusercontent.com/ONDC-Official/ONDC-Protocol-Specs/master/protocol-specifications/core/v0/api/core.yaml#/components/schemas/Contact"
+#        respondent_faqs:
+#          description: |
+#            frequently asked questions for the respondent for complainant to get information as required
+#            ** Not sure how all faqs would be sent . Possibly faq url should be good enough!
+#          type: object
+#          additionalProperties:
+#            $ref: '#/components/schemas/Faq'
+        faq_url :
           type: string
-        respondentContact:
-          $ref: "https://raw.githubusercontent.com/ONDC-Official/ONDC-Protocol-Specs/master/protocol-specifications/core/v0/api/core.yaml#/components/schemas/Contact"
-        respondentFaqs:
-          description: frequently asked questions for the respondent for complainant to get information as required
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/Faq'
+          format: uri
         additional_sources:
           type: object
           additionalProperties:
             $ref: "#/components/schemas/ResolutionSource"
-        gros:
-          description: |
-            Details of the GRO appointed by the resolution provider to support in issue resolution .
-            This is a required object if and when the issue type is "Grievance"
-          type: array
-          items:
-            $ref: "#/components/schemas/GRO"
+# GRO is a role or respondent
+#        gros:
+#          description: |
+#            Details of the GRO appointed by the resolution provider to support in issue resolution .
+#            This is a required object if and when the issue type is "Grievance"
+#          type: array
+#          items:
+#            $ref: "#/components/schemas/Representative"
 
     ResolutionSource:
       description: |
-        the resolution source provide details of any addtional resolution resources thier types and a link eg : AI enabled chatbot, support/contact webpage link , lnik to IVR detials etc
+        the resolution source provide details of any addtional resolution resources their types and a link eg : AI enabled chatbot, support/contact webpage link , link to IVR details etc
       type: object
       properties:
         type:
           type: string
         link:
           type: string
-    GRO:
-      description: |
-        Grievance Redressal Officer is appointed by each network participant (buyer app, seller app, logistic provider app) for consumer grievance redressal
-        Details of the GRO appointed by the resolution provider to support in issue resolution .
-        This is a required object if and when the issue type is "Grievance"
-        
-      type: object
-      properties:
-        person:
-          $ref: "https://raw.githubusercontent.com/beckn/protocol-specifications/draft/core/v0/api/core.yaml#/components/schemas/Person"
-        contact:
-          $ref: "https://raw.githubusercontent.com/beckn/protocol-specifications/draft/core/v0/api/core.yaml#/components/schemas/Contact"
-        gro_type:
-          type: string
-          description: |
-            Indicates the system through which the GRO is assigned to this issue. 
-            ### TYPES
-                1. Intefacing NP GRO : indicating the GRO is assigned by the NP where or through which the issue is raised
-                2. Transaction Counterparty NP GRO : indicating the GRO is assigned by the first level of counterparty network provider with which the interfacing NP is interacting with to get an issue resolution.
-                3. Cascaded Counterparty NP GRO : indicating the GRO is assigned by the second or any further downstream levels of counterparty network provider, with which the NP is interacting with, to get an issue resolution.
-          enum:
-            - INTEFACING-NP-GRO
-            - TRANSACTION-COUNTERPARTY-NP-GRO
-            - CASCADED-COUNTERPARTY-NP-GRO
-      required:
-        - contact.phone
-        - contact.email
-        - gro_type
+# GRO is role of a Representative
+#    GRO:
+#      description: |
+#        Grievance Redressal Officer is appointed by each network participant (buyer app, seller app, logistic provider app) for consumer grievance redressal
+#        Details of the GRO appointed by the resolution provider to support in issue resolution .
+#        This is a required object if and when the issue type is "Grievance"
+#
+#      type: object
+#      allOf:
+#        - $ref: "https://raw.githubusercontent.com/beckn/protocol-specifications/draft/core/v0/api/core.yaml#/components/schemas/Agent"
+#      properties:
+#        gro_type:
+#          type: string
+#          description: |
+#            Indicates the system through which the GRO is assigned to this issue.
+#            ### TYPES
+#                1. Intefacing NP GRO : indicating the GRO is assigned by the NP where or through which the issue is raised
+#                2. Transaction Counterparty NP GRO : indicating the GRO is assigned by the first level of counterparty network provider with which the interfacing NP is interacting with to get an issue resolution.
+#                3. Cascaded Counterparty NP GRO : indicating the GRO is assigned by the second or any further downstream levels of counterparty network provider, with which the NP is interacting with, to get an issue resolution.
+#          enum:
+#            - INTEFACING-NP-GRO
+#            - TRANSACTION-COUNTERPARTY-NP-GRO
+#            - CASCADED-COUNTERPARTY-NP-GRO
+#      required:
+#        - contact.phone
+#        - contact.email
+#        - gro_type
     Faq:
       description: |
        type: object
       properties:
         question:
           type: string
-        Answer:
+        answer:
           type: string
     ODR:
       description: |
@@ -406,9 +460,9 @@ components:
           description: URL link to the ODR provider
           type: string
         organization:
-          $ref: "#/components/schemas/Organization"
+          $ref: "https://raw.githubusercontent.com/beckn/protocol-specifications/draft/core/v0/api/core.yaml#/components/schemas/Agent"
         pricing_model:
-          description: Details of the pricing modle of the ODR
+          description: Details of the pricing model of the ODR
           type: object
           properties:
             price:
@@ -459,21 +513,10 @@ components:
             * Any subsequent issues created with the interfacing,counterpary or casacaded counter party apps are responsible for providing the correalted and relevant network-issue-id which helps all this inteacting systems to traverse back to the main issue.
           type: string
           format: uuid
-        complainant_info:
+        complainant:
           $ref: "#/components/schemas/Complainant"
-        # issue_identifiers:
-        #   $ref: "#/components/schemas/IssueIdentifiers"
-       # issue_order_id: #to rewview should this be moved within issue identifiers
-          #description: order id for the reference to the order for which there is a complaint
-          #type: string
-        #issue_fulfilment_id: #to rewview should this be moved within issue identifiers
-          #description: issues may be raised with reference to a fulfilment id
-          #type: string
-        #item_id: #to rewview should this be moved within issue identifiers
-         # description: issues may be raised with reference to a specific item id as well for individual items
-         # type: string
-        order_details:
-          $ref: "#/components/schemas/OrderDetails"
+        order:
+          $ref: "https://raw.githubusercontent.com/beckn/protocol-specifications/draft/core/v0/api/core.yaml#/components/schemas/Order"
         description:
           $ref: "https://raw.githubusercontent.com/beckn/protocol-specifications/draft/core/v0/api/core.yaml#/components/schemas/Descriptor"
         category:
@@ -491,8 +534,6 @@ components:
             - ISSUE
             - GRIEVANCE
             - DISPUTE
-        source:
-          $ref: "#/components/schemas/IssueSource"
         expected_response_time:
           $ref: "https://raw.githubusercontent.com/beckn/protocol-specifications/draft/core/v0/api/core.yaml#/components/schemas/Time"
         expected_resolution_time:
@@ -506,10 +547,7 @@ components:
           enum:
              - OPEN
              - CLOSED
-        issue_action:
-            $ref: "#/components/schemas/IssueActions"
-
-        selected_odrs_info:
+        selected_odrs:
           description: |
             details of the ODRs selected by the resolution provider .
             one of this would be subsequently finalized to be the ODR resposbile to resolve the issue . 
@@ -526,24 +564,28 @@ components:
             - THUMBS-UP
             - THUMBS-DOWN
         resolution_provider:
-          $ref: "#/components/schemas/ResolutionProvider"
-        resolution:
-          $ref: "#/components/schemas/IssueResolution"
-        additional_info_required:
+          $ref: "#/components/schemas/Representative"
+        respondents:
           type: array
           items:
-            $ref: "#/components/schemas/AdditionalInfoRequired"
+            $ref: "#/components/schemas/Respondent"
+        resolution:
+          $ref: "#/components/schemas/Resolution"
+        notes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Note"
         created_at:
           description: timestamp for the creation of the issue
           type: string
           format: date-time
         updated_at:
-          description: timestamp for the capturing the time an issue was last updated
+          description: timestamp for the capturing the time an issue was last updated, Adding a new note should also change this time
           type: string
           format: date-time
       required:
         - id
-        - complainant_info.contact.phone
+        - complainant.contact.phone
         - description
         - order_details.id
         - order_details
@@ -553,63 +595,18 @@ components:
         - expected_response_time
         - expected_resolution_time
         - status.status
-    SupplementaryInformation:
-      type: object
-      properties:
-        issue_update_info:
-                $ref: "https://raw.githubusercontent.com/beckn/protocol-specifications/draft/core/v0/api/core.yaml#/components/schemas/Descriptor"
-        updated_at:
-          description: timestamp for the capturing the time an issue was last updated
-          type: string
-          format: date-time
-        message_id:
-          type: string
-  #  IssueIdentifiers:
-      # description:  IDs of the subsequent tickets generated by the systems partipating in complaint resolution respectively.
-      # type: object
-      # properties:
-      #   issue_id_crm_bap:
-      #     description: this id shall be maitained and populated by the buyer app for an issue raised
-      #     type: string
-      #   issue_id_crm_bpp:
-      #     description: this id shall be maitained and populated by the seller app for an issue raised
-      #     type: string
-      #   issue_id_crm_lsp:
-      #     description: This id shall be maitained and populated by the LSP for an issue raised
-      #     type: string
-    IssueSource:
-      description: _
-      type: object
-      properties:
-        network_participant_id:
-          type: string
-          description: unique identifier of the network participant of the source of this issue. It can be one of buyer-id in the buyer- interfacing app , or any of the relevant network provider id based on what causes the issue
-        issue_source_type:
-          description: |
-            Indicates the source from where the issue is raised. 
-            ### TYPES
-                1. Consumer : indicating that the Consumer(Buyer) of a product or a service has raised the issue
-                2. Seller : indicating that the Seller of a product or a service has raised the issue
-                3. Intefacing NP : indicating that the Interfacing NP has identified and raised the issue
-          type: string
-          enum:
-            - CONSUMER
-            - SELLER
-            - INTERFACING-NP
-    IssueActions:
-      description: |
-        Status of the issue updated by respondent or the complainant
-        The issue may attain different status based on its lifecycle. TODO add info of enums in here and in issue-source
-      type: object
-      properties:
-        complainant_actions:
-          type: array
-          items:
-            $ref: "#/components/schemas/ComplainantAction"
-        respondent_actions:
-          type: array
-          items:
-            $ref: "#/components/schemas/RespondentAction"
+# Note replaces this.
+#    SupplementaryInformation:
+#      type: object
+#      properties:
+#        issue_update_info:
+#          $ref: "https://raw.githubusercontent.com/beckn/protocol-specifications/draft/core/v0/api/core.yaml#/components/schemas/Descriptor"
+#        updated_at:
+#          description: timestamp for the capturing the time an issue was last updated
+#          type: string
+#          format: date-time
+#        message_id:
+#          type: string
     IssueCategory:
       description: |
         Identifies what is the category of this issue
@@ -638,54 +635,42 @@ components:
         - "01"
         - "02"
         - "03"
-    OrderDetails:
+    Note:
       type: object
       properties:
-        id:
-          description: the value of this field will be the combination of context.transaction_id and order.id.
+        description:
+          $ref: "https://raw.githubusercontent.com/beckn/protocol-specifications/draft/core/v0/api/core.yaml#/components/schemas/Descriptor"
+        created_at:
+          description: timestamp for the capturing the time an issue was last updated
           type: string
-        state:
+          format: date-time
+        created_by:
+          description: created by Representative (could be created by complainant or respondent side)
+          $ref: "#/components/schemas/Representative"
+        message_id:
           type: string
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/Item"
-        fulfillments:
-          type: array
-          items:
-            $ref: "#/components/schemas/Fulfillment"
-    Item:
-      type: object
-      properties:
-        id:
+          format: uuid
+        response_to_message_id:
+          description: can be null or an existing message_id for which the current note is a response.
           type: string
-    Fulfillment:
-      type: object
-      properties:
-        id:
-          type: string
-        state:
-          type: string
-    AdditionalInfoRequired:
-      type: object
-      properties:
-        info_required:
-          type: object
-          $ref: "#/components/schemas/SupplementaryInformation"
-        info_provided:
-          type: object
-          $ref: "#/components/schemas/SupplementaryInformation"
+          format: uuid
+        action:
+          description : Based on the role of the representative . corresponding actions may be taken.
+          oneOf:
+            - $ref: "#/components/schemas/ComplainantAction"
+            - $ref: "#/components/schemas/RespondentAction"
     SelectedODRs:
       type: object
       properties:
-        respondant_info:
+        respondent:
           type: object
-          $ref: "#/components/schemas/Organization"
+          $ref: "#/components/schemas/Representative"
         odrs:
           type: array
           items:
             $ref: "#/components/schemas/ODR"
     ComplainantAction:
+      description: Action taken while adding a note on the issue
       type: object
       properties:
         complainant_action:
@@ -693,25 +678,15 @@ components:
               Describes the action taken by the complainant who has raised the issue. 
               the value should be populated when the complainant has taken any of the below actions to anotate the action taken. the actions can be, 
               ### Actions
-              1. Complainant can ```open``` the issue if he isn't satisfied with the products or services he has purchased or used 
-              2. Complainant can ```escalate``` the issue if he isn't satisfied with the issue resolution
-              3. Complainant can ```close``` the issue if he doesn't expect any more additonal action on the issue and he is satisfied with the resolution/actions taken on the issue till the time of closure of the issue.
+              1. Representative can ```open``` the issue if he isn't satisfied with the products or services he has purchased or used 
+              2. Representative can ```escalate``` the issue if he isn't satisfied with the issue resolution
+              3. Representative can ```close``` the issue if he doesn't expect any more additonal action on the issue and he is satisfied with the resolution/actions taken on the issue till the time of closure of the issue.
           type: string
           enum:
             - OPEN
             - ESCALATE
             - CLOSE
-        updated_at:
-          description: timestamp for the capturing the time an issue status was last updated
-          type: string
-          format: date-time
-        updated_by:
-          $ref: "#/components/schemas/Organization"  
-        remarks:
-          description: |
-            details of the remarks when the issue status is changed, can be captured when the complainant triggers an action
-          type: string
-          
+
     RespondentAction:
       type: object
       properties:
@@ -722,16 +697,6 @@ components:
             - CASCADED
             - RESOLVED
             - NEED-MORE-INFO
-        updated_at:
-          description: timestamp for the capturing the time an issue status was last updated
-          type: string
-          format: date-time
-        updated_by:
-          $ref: "#/components/schemas/Organization"
-        remarks:
-          description: |
-            details of the remarks when the issue status is changed, can be captured when the respondent triggers an action
-          type: string
         cascaded_level:
           description: the default value will be 1, whenever the issue will be cascaded to the next level the value of this field should be incremented by 1 it will upgrade it indicates to the next sub-level.
           type: integer
