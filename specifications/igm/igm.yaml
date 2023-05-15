@@ -218,53 +218,24 @@ components:
       name: Authorization
       description: 'Signature of message body using Collector or Receiver subscriber''s signing public key. <br/><br/>Format:<br/><br/><code>Authorization : Signature keyId="{subscriber_id}|{unique_key_id}|{algorithm}",algorithm="ed25519",created="1606970629",expires="1607030629",headers="(created) (expires) digest",signature="Base64(signing string)"</code>'
   schemas:
-    Representor:
+    Complainant:
       description: |
-        - Describes an entity that raises/responds to a complaint with an interfacing app. 
+        - Describes an entity that raises a complaint with an interfacing app. 
         - The complainant may be an end user (buyer or seller) or a network participant (buyer app/ seller app/ logistic services  provider app)
       type: object
-      properties:
-        subscriber_id:
-          type: string
-        id :
-          description: id of the representative.  (typically user_id on the representing system , buyer_id or provider_id or seller_id or driver_id on the corrpesponding apps bap,bpp or logistics bpp)
-          type: string
-        role :
-          type: string
-          oneOf:
-            - $ref: "#/components/schemas/ComplainantRole"
-            - $ref: "#/components/schemas/RespondentRole"
       allOf:
-        - $ref: "https://raw.githubusercontent.com/beckn/protocol-specifications/draft/core/v0/api/core.yaml#/components/schemas/Agent"
-
-      chat_url:
-        description: chatbot url for the respondent for complainant to interact with the respondent
-        type: string
-        format: uri
-      faq_url :
-        type: string
-        format: uri
-      additional_sources:
-        type: object
-        additionalProperties:
-          $ref: "#/components/schemas/ResolutionSource"
-      required:
-        - contact.phone
-
-    Complainant:
-      type: object
-      allOf:
-        - $ref: "#/components/schemas/Representor"
+        - $ref: "#/components/schemas/Representative"
       properties:
         role :
           $ref : "#/components/schemas/ComplainantRole"
 
+
     Respondent:
       description: |
-        Representor paying respondent role.
+        Representative paying respondent role.
       type: object
       allOf:
-        - $ref: "#/components/schemas/Representor"
+        - $ref: "#/components/schemas/Representative"
       properties:
         role:
           $ref: "#/components/schemas/RespondentRole"
@@ -298,6 +269,7 @@ components:
       description: Describes the resolution for the issue raised by a complainant
       type: object
       properties:
+        # network_issue_id: Removed as it is an object inside issue.
         resolution:
           description: resolution
           type: string
@@ -329,6 +301,37 @@ components:
       required:
         - resolution_remarks
         - resolution_status
+    Representative:
+      description: |
+        - Describes an entity that raises/responds to a complaint with an interfacing app. 
+        - The complainant may be an end user (buyer or seller) or a network participant (buyer app/ seller app/ logistic services  provider app)
+      type: object
+      properties:
+        subscriber_id:
+          type: string
+        id :
+          description: id of the representative.  (typically user_id on the representing system , buyer_id or provider_id or seller_id or driver_id on the corrpesponding apps bap,bpp or logistics bpp)
+          type: string
+        role :
+          type: string
+          oneOf:
+            - $ref: "#/components/schemas/ComplainantRole"
+            - $ref: "#/components/schemas/RespondentRole"
+        chat_url:
+          description: chatbot url for the respondent for complainant to interact with the respondent
+          type: string
+          format: uri
+        faq_url :
+          type: string
+          format: uri
+        additional_sources:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/ResolutionSource"
+      allOf:
+        - $ref: "https://raw.githubusercontent.com/beckn/protocol-specifications/draft/core/v0/api/core.yaml#/components/schemas/Agent"
+      required:
+        - contact.phone
 
 
     ResolutionSource:
@@ -340,6 +343,7 @@ components:
           type: string
         link:
           type: string
+    #GRO not required as it is encapsulated in representative
     ODR:
       description: |
         * Describes the details of the Online Dispute Resolution Provider.
@@ -358,11 +362,11 @@ components:
         url:
           description: URL link to the ODR provider
           type: string
-        #Cannot be defined at this schema level IT is dynamic by issue. If you need to have at ODR level it should be an array of arbitrators defined against the odr.
+        #Cannot be defined at this schema level IT is dynamic by issue. Encapsulated in Representative object
         #agent:
         #  $ref: "https://raw.githubusercontent.com/beckn/protocol-specifications/draft/core/v0/api/core.yaml#/components/schemas/Agent"
         subscriber_id:
-          description: Subscriber id of the odr participant, Can have therefore representors and hence agent schema within representor.
+          description: Subscriber id of the odr participant in odr network, Can have therefore representatives and hence agent schema within representative.
           type: string
           
         pricing_model:
@@ -375,6 +379,7 @@ components:
               description: addtional information about the pricing model
               type: string
 
+        #resolution_ratings, Plural not right.
         resolution_rating:
           $ref: "#/components/schemas/Rating"
       required:
@@ -422,16 +427,17 @@ components:
         respondent:
           $ref: "#/components/schemas/Respondent"
         resolution_provider:
-          $ref: "#/components/schemas/Representor"
+          $ref: "#/components/schemas/Representative"
         representors:
           type: array
           items:
-            $ref: "#/components/schemas/Representor"
+            $ref: "#/components/schemas/Representative"
         order:
           $ref: "https://raw.githubusercontent.com/beckn/protocol-specifications/draft/core/v0/api/core.yaml#/components/schemas/Order"
-        issue_category:
+        #description: Removed as it is part of notes. note can be used during issue creation to capture any issue description. 
+        category:
           $ref: "#/components/schemas/IssueCategory"
-        issue_sub_category:
+        sub_category:
           $ref: "#/components/schemas/IssueSubCategory"
         # Better to call escalation_level as escalation_level
         escalation_level:
@@ -499,7 +505,7 @@ components:
         - updated_at
         - expected_response_time
         - expected_resolution_time
-        - status.status
+        - status
     IssueCategory:
       description: |
         Identifies what is the category of this issue
@@ -538,8 +544,8 @@ components:
           type: string
           format: date-time
         created_by:
-          description: created by Representor (could be created by complainant or respondent side)
-          $ref: "#/components/schemas/Representor"
+          description: created by Representative (could be created by complainant or respondent side)
+          $ref: "#/components/schemas/Representative"
         id:
           type: string
           format: uuid
@@ -570,14 +576,17 @@ components:
               Describes the action taken by the complainant who has raised the issue. 
               the value should be populated when the complainant has taken any of the below actions to anotate the action taken. the actions can be, 
               ### Actions
-              1. Representor can ```open``` the issue if he isn't satisfied with the products or services he has purchased or used 
-              2. Representor can ```escalate``` the issue if he isn't satisfied with the issue resolution
-              3. Representor can ```close``` the issue if he doesn't expect any more additonal action on the issue and he is satisfied with the resolution/actions taken on the issue till the time of closure of the issue.
+              1. Representative can ```open``` the issue if he isn't satisfied with the products or services he has purchased or used 
+              2. Representative can ```escalate``` the issue if he isn't satisfied with the issue resolution
+              3. Representative can ```close``` the issue if he doesn't expect any more additonal action on the issue and he is satisfied with the resolution/actions taken on the issue till the time of closure of the issue.
           type: string
           enum:
             - OPEN
             - ESCALATE
             - CLOSE
+            - NOTES
+            - INFORMATION_REQUESTED
+            - INFORMATION_PROVIDED
 
     RespondentAction:
       type: object
@@ -589,6 +598,8 @@ components:
             - CASCADED
             - RESOLVED
             - NOTES
+            - INFORMATION_REQUESTED
+            - INFORMATION_PROVIDED
         cascaded_level:
           description: the default value will be 1, whenever the issue will be cascaded to the next level the value of this field should be incremented by 1 it will upgrade it indicates to the next sub-level.
           type: integer
