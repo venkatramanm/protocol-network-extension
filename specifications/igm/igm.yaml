@@ -1009,9 +1009,6 @@ components:
       properties:
         subscriber_id:
           type: string
-        id :
-          description: id of the representative.  (typically user_id on the representing system , buyer_id or provider_id or seller_id or driver_id on the corrpesponding apps bap,bpp or logistics bpp)
-          type: string
         role :
           type: string
           oneOf:
@@ -1050,7 +1047,7 @@ components:
         ODR Service Providers (ODR SP) via dispute resolution methods such as mediation/ conciliation and/or arbitration, will attempt to resolve disputes
         NOTE : ```ODR``` stands for Online Dispute Resolution.
         * May also describe the details of the ODR finalized or identified by the intefacing app, to whom the issue will be assigned for resolution.
-        ODR may have representors associated with its subscriber id 
+        ODR may have representatives associated with its subscriber id
       type: object
       properties:
         name:
@@ -1128,7 +1125,7 @@ components:
           $ref: "#/components/schemas/Respondent"
         resolution_provider:
           $ref: "#/components/schemas/Representative"
-        representors:
+        representatives:
           type: array
           items:
             $ref: "#/components/schemas/Representative"
@@ -1174,12 +1171,9 @@ components:
             $ref: "#/components/schemas/SelectedODRs"
         finalized_odr:
           $ref: "#/components/schemas/ODR"
-        rating:
-          description: rating by the complainant for issue resolution
-          type: string
-          enum:
-            - THUMBS-UP
-            - THUMBS-DOWN
+        # Better name than rating. Rating usually has a meaning of a number like Rating schema
+        satisfied:
+          type: boolean
         resolution:
           $ref: "#/components/schemas/Resolution"
         notes:
@@ -1197,7 +1191,6 @@ components:
       required:
         - id
         - complainant.contact.phone
-        - description
         - order.id
         - order
         - escalation_level
