@@ -932,7 +932,7 @@ components:
 
     Respondent:
       description: |
-        Representative paying respondent role.
+        Representative playing respondent role.
       type: object
       allOf:
         - $ref: "#/components/schemas/Representative"
