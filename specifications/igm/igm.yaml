@@ -949,21 +949,21 @@ components:
         3. Intefacing NP: indicating that the Interfacing NP has identified and raised the issue\
       type: string
       enum:
-        - COMPLAINANT_PARTY,
-        - COMPLAINANT_PLATFORM,
-        - COMPLAINANT_GRO,
-        - ODR
+        - COMPLAINANT-PARTY,
+        - COMPLAINANT-PLATFORM,
+        - COMPLAINANT-GRO,
+        - ODR-ARBITRATOR
 
     RespondentRole :
       type: string
       enum:
-        - RESPONDENT_PARTY,
-        - RESPONDENT_PLATFORM,
-        - RESPONDENT_GRO,
-        - CASCADED_RESPONDENT_PARTY,
-        - CASCADED_RESPONDENT_PLATFORM,
-        - CASCADED_RESPONDENT_GRO,
-        - ODR
+        - RESPONDENT-PARTY,
+        - RESPONDENT-PLATFORM,
+        - RESPONDENT-GRO,
+        - CASCADED-RESPONDENT-PARTY,
+        - CASCADED-RESPONDENT-PLATFORM,
+        - CASCADED-RESPONDENT-GRO,
+        - ODR-ARBITRATOR
 
     Resolution:
       description: Describes the resolution for the issue raised by a complainant
