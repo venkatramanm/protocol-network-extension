@@ -953,7 +953,6 @@ components:
         - COMPLAINANT-PLATFORM,
         - COMPLAINANT-GRO,
         - ODR-ARBITRATOR
-
     RespondentRole :
       type: string
       enum:
